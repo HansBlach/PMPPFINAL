@@ -28,10 +28,7 @@ import GetData as gd                              # noqa: F401  (kept for parity
 import Kalman_filter_LD as ld
 import BIC_monthly_OU   as drv
 
-# Re-use simulation primitives — these have no weekly/monthly assumptions
-# baked in; they're pure functions of (params, state, maturity, ...). They
-# live in simulate_paths_monthly so the legacy simulate_paths.py can be
-# deleted without breaking this file.
+# Re-use simulation primitives 
 from simulate_paths_monthly import (
     filter_to_end,
     simulate_state_paths,
@@ -58,23 +55,15 @@ RUN = {
 }
 
 # ---- Slice figure ----
-# For each parameter at its fitted MLE, evaluate the EKF logL on a grid
-# around the MLE (other params held fixed) and plot logL(param). Confirms
-# each slot is at a local optimum (parabolic) — and makes it visually
-# obvious which slot, if any, is monotonic into a bound (e.g., p_gamma).
+
 SLICE_DEGS        = (3, 5)
 SLICE_GRID_PTS    = 21        # odd → MLE itself sits on the grid
 SLICE_REL_RANGE   = 0.5       # +/- 50% around the MLE value
 SLICE_MIN_HALF    = 0.05      # minimum half-width as fraction of bound width
-# For PINNED slots (lo == hi) we still sweep this absolute half-width
-# around the pinned value, so the figure can confirm the pin sits at a
-# local optimum (or on a flat region — both are useful).
 SLICE_PINNED_HALF = 0.5
 
 # Upper-bound ladder for p_beta (lower bound stays at 0).
 BETA_UPPERS  = (2.0, 1.5, 1.0, 0.5, 0.3)
-# Upper-bound ladder for p_gamma (lower bound stays at the existing 0.01
-# floor used in make_bounds_shared so the EKF can build phi'(x) > 0).
 GAMMA_UPPERS = (2.0, 1.5, 1.0, 0.5, 0.3)
 
 # Refit controls. Smaller DE budgets than the BIC driver because we run
@@ -89,14 +78,7 @@ N_PATHS_CDF   = 500
 CDF_DEGS      = (1, 3, 5)        # baseline degrees to plot
 CDF_OBS_NOISE = True             # add per-bucket measurement noise to sim prices
 
-# X-axis cap so a few extreme simulated prices don't smear the CDF.
-# The KS distance is ALWAYS computed on the full pooled sample (no clipping),
-# so the test result is unaffected by what we display.
-#   "simulated_pct" — clip to a percentile range of the SIMULATED prices
-#                     (default: show out to the 98th percentile of sim prices)
-#   "observed_pct"  — clip to a percentile range of the OBSERVED prices only
-#   "pooled_pct"    — clip to a percentile range of (observed + simulated)
-#   "none"          — show everything (matplotlib autoscale)
+
 CDF_XLIM_MODE   = "simulated_pct"
 CDF_XLIM_PCT    = (1.0, 98.0)    # percentile lo/hi when mode != "none"
 CDF_XLIM_BUFFER = 0.05           # 5% padding on each side of the percentile range
@@ -291,11 +273,6 @@ def evaluate_logL(params_vec, y_resid, maturity, delivery, dt, m, N_poly):
     return -float(nll)
 
 
-# ---------------------------------------------------------------
-# Parameter report — flatten an (m, N_poly) packed vector into a dict
-# of stable keys so the LLR CSVs can carry the full parameter set per
-# row. Useful when reading the CSV in Excel / pandas after the fact.
-# ---------------------------------------------------------------
 
 def params_to_row(params_vec, m, N_poly, prefix=""):
     """Unpack `params_vec` and return a flat dict of all model parameters."""
@@ -343,12 +320,7 @@ def params_to_row(params_vec, m, N_poly, prefix=""):
     return row
 
 
-# ---------------------------------------------------------------
-# Effective free polynomial-map parameters per degree.
-# In shared mode at deg 1, p_beta is in the bounds list but does NOT
-# enter phi(x) = p_delta + x — `num_params_ld` overcounts it. The LLR
-# df between models is computed from this effective count, NOT k.
-# ---------------------------------------------------------------
+
 
 def n_active_poly_params(N_poly):
     """How many polynomial-map coefficients actually enter phi(x) AND are"""
@@ -709,9 +681,7 @@ def run_slice_figure(data, baseline_cells):
     for N in degs:
         v_mle  = np.asarray(baseline_cells[N]["params_vec"], dtype=float).copy()
         # Use the SAME bounds the BIC fit saw — Kalman_filter_LD.make_bounds
-        # (NOT the LLR-local make_bounds_capped, whose tighter sweep defaults
-        # would mark interior MLEs as out-of-range and incorrectly tag them
-        # as pinned).
+
         bounds = ld.make_bounds(
             M_FACTORS, N, fit_d=FIT_D,
             independent_poly=INDEPENDENT_POLY,
@@ -739,9 +709,7 @@ def run_slice_figure(data, baseline_cells):
             grid    = make_slice_grid(lo, hi, mle_val)
             status  = ""
             if grid is None:
-                # Pinned slot — sweep a default range AROUND the pinned value
-                # so we can confirm it sits at a local optimum (or on a flat
-                # region). Bounds are ignored here on purpose.
+
                 grid = np.linspace(mle_val - SLICE_PINNED_HALF,
                                     mle_val + SLICE_PINNED_HALF,
                                     SLICE_GRID_PTS)
@@ -1075,9 +1043,7 @@ def run_cdf_figure(data, baseline_cells):
             if xlim is not None:
                 ax_cdf.set_xlim(*xlim)
                 ax_d.set_xlim(*xlim)
-                # Hint to the reader when the simulated tail extends past the
-                # display range — easy to mistake a clipped tail for "no tail"
-                # otherwise.
+
                 sim_max = float(np.nanmax(sim)) if sim.size else float("nan")
                 if np.isfinite(sim_max) and sim_max > xlim[1]:
                     ax_cdf.text(
@@ -1107,9 +1073,7 @@ def run_cdf_figure(data, baseline_cells):
             f"{ks_summary[(N, c)]:>10.4f}" for c in CONTRACT_LABELS)
         print(row)
 
-    # Thesis-ready figures: density histogram + pooled |dF| difference,
-    # pooled across maturities. KS values are printed to terminal only,
-    # not annotated on the histogram figure.
+
     _, pooled_ks = _save_thesis_histograms(degs, sim_by_deg, y_matrix)
     _save_thesis_diff(degs, sim_by_deg, y_matrix)
     print("\n  Pooled KS (all maturities, sim vs observed CDF):")
@@ -1120,12 +1084,6 @@ def run_cdf_figure(data, baseline_cells):
 
 # ---------------------------------------------------------------
 # In-sample RMSE / diagnostics
-#
-# Ports the in-sample half of the standalone compute_rmse_OU.py: filter the
-# Stage-B residual through the EKF using the saved (full-sample) params and
-# collect residuals, innovation covariances, filtered states, predictions.
-# OOS is intentionally skipped — that's still in compute_rmse_OU.py if you
-# want it.
 # ---------------------------------------------------------------
 
 RMSE_DEGS    = (1, 3, 5)        # which N_poly cells to score

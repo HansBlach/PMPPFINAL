@@ -484,8 +484,7 @@ def make_bounds(m_per_market: int, N_poly: int):
     bounds += [(-1.0, 1.0)] * m             # lam_Y
 
     bounds += [(0.1, 50)]                              # kappa_R
-    # theta_R (mu_3): pinned when PIN_THETA_R is not None (degenerate axis,
-    # see note at PIN_THETA_R), else free in (-0.95, 0.95).
+
     if PIN_THETA_R is not None:
         bounds += [(float(PIN_THETA_R), float(PIN_THETA_R))]
     else:

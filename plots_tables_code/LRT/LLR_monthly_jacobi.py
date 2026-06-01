@@ -309,11 +309,6 @@ def run_baseline_llr(data):
                               DT, M_FACTORS, N, per_factor_c=pf_c)
         n_eff = n_active_poly_params(N)
 
-        # BIC: same convention as BIC_monthly_jacobi.run_ekf_grid so the
-        # values match bic_ekf_jacobi_monthly.csv. When the spot corridor
-        # was pinned during fitting (CORRIDOR_PINNED = True), p_delta and
-        # c_tilde are model constraints rather than free parameters and
-        # are subtracted from the BIC count.
         k_full = expected_k
         if CORRIDOR_PINNED:
             _c_size  = M_FACTORS if pf_c else 1
@@ -543,11 +538,7 @@ def run_slice_figure(data, baseline_cells):
                 x[i] = float(val)
                 ll[j] = evaluate_logL(x, y_resid, maturity, delivery,
                                        DT, M_FACTORS, N, per_factor_c=pf_c)
-            # Mask only the EKF-failure sentinel / log_det blow-ups
-            # (returns ~ -1e10 from EKF_run) so they don't drag the
-            # per-panel y-axis autoscale. Keep real-but-bad logL
-            # values (e.g. alpha/beta slices that dip to -1e4 or -5e4)
-            # visible so the well shape around the MLE is informative.
+
             ll[ll < -1e6] = np.nan
             slices.append((labels[i], grid, ll, mle_val, status))
         print(f"    ... swept in {time.time() - t0:.1f}s")
@@ -576,8 +567,7 @@ def run_slice_figure(data, baseline_cells):
                 tag = f"  [pinned at {mle_val:.4g}]"
             elif status in ("lower", "upper"):
                 tag = f"  [at {status} bound]"
-            # Clamp the y-axis to a fixed window below the panel max so
-            # deep α/β tails don't compress the well around the local max.
+
             if SLICE_LOGL_WINDOW is not None:
                 finite = ll[np.isfinite(ll)]
                 if finite.size:
@@ -586,10 +576,7 @@ def run_slice_figure(data, baseline_cells):
                                  y_hi - float(SLICE_LOGL_WINDOW))
                     pad    = 0.05 * max(y_hi - y_lo, 1e-9)
                     ax.set_ylim(y_lo - pad, y_hi + pad)
-                    # Trim the x-axis to the span where the curve is inside
-                    # the window, extended one grid step each side so the
-                    # line reaches the bottom corners instead of leaving
-                    # dead space where the tail is off-screen.
+
                     if SLICE_XFIT_TO_WINDOW:
                         inside = np.where(ll >= y_lo)[0]
                         if inside.size:
@@ -909,9 +896,7 @@ def run_cdf_figure(data, baseline_cells):
             f"{ks_summary[(N, c)]:>10.4f}" for c in CONTRACT_LABELS)
         print(row)
 
-    # Histograms: produce two 2×2 panels (degrees 1-4 and 2-5) when both
-    # subsets are fully populated. Fall back to the legacy single-row figure
-    # if either group is missing a degree (e.g. only N ∈ {2,3,5} were fit).
+    # Histograms: produce two 2×2 panels 
     pooled_ks = {}
     canonical_groups = [
         ([1, 2, 3, 4], "deg1_4"),
@@ -925,9 +910,7 @@ def run_cdf_figure(data, baseline_cells):
                 group, sim_by_deg, y_matrix,
                 layout=(2, 2), suffix=suf)
             pooled_ks.update(ks_sub)
-        # Backfill KS values for any degree only present in `degs` but
-        # outside the 1-4 / 2-5 subsets (currently impossible with degs ⊆
-        # {1,…,5}, but kept defensively for future extensions).
+
         missing_in_groups = [d for d in degs if d not in pooled_ks]
         if missing_in_groups:
             _, ks_extra = _save_thesis_histograms(
@@ -935,7 +918,6 @@ def run_cdf_figure(data, baseline_cells):
                 suffix="extra")
             pooled_ks.update(ks_extra)
     else:
-        # Legacy single-row fallback when 2×2 grouping isn't possible.
         _, pooled_ks = _save_thesis_histograms(degs, sim_by_deg, y_matrix)
 
     _save_thesis_diff(degs, sim_by_deg, y_matrix)
@@ -947,12 +929,6 @@ def run_cdf_figure(data, baseline_cells):
 
 # ---------------------------------------------------------------
 # In-sample RMSE / diagnostics
-#
-# Ports the in-sample half of the standalone compute_rmse_jacobi.py: filter
-# the Stage-B residual through the EKF using the saved (full-sample) params
-# and collect residuals, innovation covariances, filtered states, predictions.
-# OOS is intentionally skipped — that's still in compute_rmse_jacobi.py if
-# you want it.
 # ---------------------------------------------------------------
 
 RMSE_DEGS    = (1, 2, 3, 4, 5)

@@ -1,46 +1,5 @@
 """DE/FR power-futures correlation analysis on the BIC_monthly_twomarkets sample.
 
-Reuses ``BIC_monthly_twomarkets.load_stage_b_data`` so the panel is exactly
-the one the joint two-market BIC grid sees: inner-joined on Trading Day,
-filtered to the first trading day of each ISO week, and sliced to dates
->= START_DATE (2023-05-01).
-
-Two parallel pipelines:
-
-* RAW prices / log returns -- the "is there a basis" view, identical to the
-  first version of this script.
-* DESEASONALISED residuals -- the "is there a basis after removing the
-  shared seasonal pattern" view. Residuals are computed exactly as in
-  ``BIC_monthly_twomarkets.main()``: fit Stage A seasonality per market
-  (annual_h from ANNUAL_GRID, BIC-selected), then apply the betas to the
-  joint Stage B trading days on the normalised price scale.
-
-Outputs in the project directory:
-
-Raw pipeline
-  * ``corr_DE_FR_matched.csv``
-  * ``corr_DE_FR_rolling.csv`` (+ ``.png``)
-  * ``corr_DE_FR_crossmaturity.csv``
-
-Deseasonalised pipeline
-  * ``corr_DE_FR_matched_deseasonalised.csv`` -- Pearson on residual
-    levels and on residual first differences, per matched maturity.
-  * ``corr_DE_FR_rolling_deseasonalised.csv`` (+ ``.png``) -- rolling
-    Pearson of residual first differences.
-  * ``corr_DE_FR_crossmaturity_deseasonalised.csv`` -- 8x8 matrix on
-    residual levels.
-
-Side-by-side summary
-  * ``corr_DE_FR_matched_summary.csv`` -- one row per matched maturity
-    comparing raw log-return correlation against the deseasonalised
-    versions.
-
-Run:
-
-    python correlation_DE_FR.py [--window 12] [--no-plot]
-
-If matplotlib is available, quick rolling-correlation plots are saved
-unless ``--no-plot`` is passed.
 """
 
 from __future__ import annotations
@@ -112,14 +71,7 @@ def load_joint_panel() -> Tuple[pd.DataFrame, pd.DataFrame, list]:
 
 def load_deseasonalised_residuals() -> Tuple[pd.DataFrame, pd.DataFrame, list,
                                               dict]:
-    """Replicate BIC_monthly_twomarkets.main() up to (but not including) the
-    EKF stage: load Stage A panels, fit seasonality per market, apply the
-    selected betas to the Stage B trading days on the normalised scale.
-
-    Returns (resid_DE, resid_FR, labels, info) where each residual frame is
-    indexed by trading day, columns ``DE_<MAT>`` / ``FR_<MAT>``. ``info``
-    carries the chosen ``annual_h`` per market, the per-market price scales
-    used for normalisation, and the seasonality BIC tables for the record.
+    """Replicate BIC_monthly_twomarkets.main() 
     """
     tm = btm.tm  # alias the Kalman_filter_TwoMarket module
 

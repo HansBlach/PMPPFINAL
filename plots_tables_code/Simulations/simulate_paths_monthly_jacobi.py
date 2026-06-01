@@ -141,7 +141,7 @@ def load_params_vec(m, N_poly, per_factor_c=None):
 
 
 def resolve_best_key():
-    """Lowest-BIC successful row in the mode-tagged BIC CSV (fall back to legacy name)."""
+    """Lowest-BIC successful row in the mode-tagged BIC CSV """
     mode_tag = _mode_tag()
     candidates = [
         os.path.join(OUT_DIR,
@@ -319,54 +319,6 @@ def _plot_increments_hist_per_maturity_thesis(obs_prices, sim_prices_all_paths,
     print(f"  saved -> {save_path}")
 
 
-def _plot_increments_hist_all_in_one_thesis(obs_prices, sim_prices_all_paths,
-                                              contract_labels, save_path,
-                                              n_bins=60):
-    """Pooled Δprice histogram (obs vs sim) on single axes, with KS."""
-    obs_inc = np.diff(np.asarray(obs_prices), axis=0)
-    sim_inc = np.diff(np.asarray(sim_prices_all_paths), axis=1)
-    n_c     = obs_inc.shape[1]
-    n_paths = sim_inc.shape[0]
-    obs_pool = obs_inc.ravel()
-    sim_pool = sim_inc.ravel()
-    # Always cover the full observed range; clip simulated at 0.5/99.5.
-    sim_lo, sim_hi = np.percentile(sim_pool, [0.5, 99.5])
-    lo = min(float(np.min(obs_pool)), float(sim_lo))
-    hi = max(float(np.max(obs_pool)), float(sim_hi))
-    bins = np.linspace(lo, hi, n_bins + 1)
-
-    v_obs = float(np.var(obs_pool, ddof=1))
-    v_sim = float(np.var(sim_pool, ddof=1))
-    ratio = v_sim / v_obs if v_obs > 0 else float("nan")
-    print(f"  Δprice variance (pooled, EUR/MWh)^2:  "
-          f"obs={v_obs:9.4f}   sim={v_sim:9.4f}   sim/obs={ratio:.3f}")
-
-    fig, ax = plt.subplots(1, 1, figsize=(11, 4.5))
-    ax.hist(obs_pool, bins=bins, density=True, alpha=_HIST_ALPHA,
-            color=_HIST_OBS_COLOR,
-            label=f"observed (pooled, {n_c} maturities)",
-            edgecolor="white", linewidth=0.3)
-    ax.hist(sim_pool, bins=bins, density=True, alpha=_HIST_ALPHA,
-            color=_HIST_SIM_COLOR,
-            label=f"simulated (pooled, {n_paths} paths × {n_c} maturities)",
-            edgecolor="white", linewidth=0.3)
-    ax.axvline(0.0, color="k", lw=0.5, alpha=0.4)
-    ax.set_xlabel("Δ price (EUR/MWh)")
-    ax.set_ylabel("density")
-    ax.set_xlim(lo, hi)
-    ax.grid(True, alpha=0.3)
-    ks = _ks_2samp(obs_pool, sim_pool)
-    ax.text(0.98, 0.95, f"KS = {ks:.3f}",
-            transform=ax.transAxes, ha="right", va="top",
-            fontsize=10,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
-                      edgecolor="#999999", alpha=0.85))
-    ax.legend(loc="upper left", frameon=False, fontsize=9)
-    fig.tight_layout()
-    fig.savefig(save_path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
-    print(f"  saved -> {save_path}")
-
 
 def _simulate_in_history_for_degree_jacobi(m, N_poly, *,
                                               n_paths, dt,
@@ -413,10 +365,7 @@ def _plot_increments_hist_all_by_degree_thesis(obs_prices,
         return
     n_panels = len(items)
 
-    # Shared x-scale across panels. Always cover the full observed range so
-    # the largest data-side increments are visible; clip the simulated tails
-    # at their 0.5/99.5 percentile so a few extreme sim paths don't
-    # compress the bulk.
+
     sim_pools = []
     for _, sim_prices in items:
         sim_inc = np.diff(np.asarray(sim_prices), axis=1)
@@ -653,15 +602,7 @@ def main():
     print(f"  half-life (yr) = {np.log(2.0) / params.kappa}")
 
     # ----- Feller-type boundary conditions for the Jacobi state -----
-    # The continuous SDE  dX = kappa (theta_P - X) dt + sigma sqrt(X(1-X)) dW
-    # stays strictly inside (0, 1) almost surely iff BOTH per-factor ratios
-    #   a = 2 kappa theta_P / sigma^2           (lower boundary, X=0)
-    #   b = 2 kappa (1 - theta_P) / sigma^2     (upper boundary, X=1)
-    # are >= 1. If one of them drops below 1, the continuous process
-    # genuinely touches that boundary, and the JACOBI_EPS clip inside
-    # simulate_state_paths_jacobi is no longer a pure numerical safety net
-    # for Euler overshoots — it's masking a calibration that has wandered
-    # outside the admissible Jacobi region.
+
     feller_a_P = 2.0 * np.asarray(params.kappa) * np.asarray(theta_P) \
                   / np.asarray(params.sigma) ** 2
     feller_b_P = 2.0 * np.asarray(params.kappa) * (1.0 - np.asarray(theta_P)) \
@@ -937,9 +878,7 @@ def main():
         contract_labels=CONTRACT_LABELS,
         save_path=inc_hist_per_mat_path,
     )
-    # Multi-degree pooled-Δprice histogram. All supported polynomial degrees
-    # (Ware §3.1 + Appendix B). Cells with no saved params file are silently
-    # skipped by the plotting routine.
+    # Multi-degree pooled-Δprice histogram.
     INC_HIST_DEGREES = (1, 2, 3, 4, 5)
     sim_by_degree = {}
     for N_deg in INC_HIST_DEGREES:
@@ -956,11 +895,7 @@ def main():
             seed=args.seed,
         )
 
-    # Two thesis-style 2×2 panels (degrees 1-4 and 2-5) when both subsets
-    # have a simulation available. _plot_increments_hist_all_by_degree_thesis
-    # already chooses a 2×2 layout when it receives exactly 4 non-None cells,
-    # so we just filter the dict at the call site. Fall back to the legacy
-    # single-figure call if either group is missing a degree.
+    # Two 2×2 panels
     canonical_groups = [
         ([1, 2, 3, 4], "deg1_4"),
         ([2, 3, 4, 5], "deg2_5"),
@@ -981,8 +916,7 @@ def main():
                 save_path=save_path,
             )
     else:
-        # Legacy fallback (single figure with auto layout) when 2×2
-        # grouping isn't possible — e.g. only N ∈ {2,3,5} were fit.
+
         inc_hist_all_path = os.path.join(
             THESIS_FIG_DIR,
             f"sim_jacobi_{PERIOD_TAG}_{args.model}_increments_hist_all.png",

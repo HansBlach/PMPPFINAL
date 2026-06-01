@@ -549,12 +549,7 @@ def plot_market_with_seasonality(hist_dt, t_years, y_obs, mat, dlt,
                                     seas_beta, annual_h, price_scale,
                                     contract_labels, market_label,
                                     save_path, eval_idx=-1):
-    """Single-variant seasonality plot, mirroring the OU `seasonality_N2`
-    figure. Each contract is drawn as a coloured solid line; `g(t)` is the
-    seasonality basis evaluated at FIXED mean maturity/delivery of one
-    reference contract (`eval_idx` index into `mat`/`dlt`), so the dashed
-    line is a smooth curve free of the per-contract sawtooth that rolling
-    maturities introduce."""
+
     n_c = y_obs.shape[1]
     fig, ax = plt.subplots(figsize=(11, 4.5))
 
@@ -594,9 +589,7 @@ def plot_market_with_seasonality(hist_dt, t_years, y_obs, mat, dlt,
 
 def plot_raw_prices_de_fr_short_long(hist_dt, y1, y2, contract_labels,
                                        save_path):
-    """Raw DE and FR forward prices for the shortest and longest maturities
-    in the Stage-B panel (typically 1MAH and 4MAH), over the in-sample
-    window. Two colours (market), two line styles (maturity)."""
+
     short_idx = 0
     long_idx  = len(contract_labels) - 1
     short_lbl = contract_labels[short_idx]
@@ -721,11 +714,7 @@ def _simulate_in_history_for_degree_twomarket(m, N_poly, *, n_paths, data,
 def plot_increment_histogram_by_degree(y_obs, sim_by_degree, market_idx,
                                          market_label, save_path, n_bins=60):
     """One panel per polynomial degree of pooled Δprice histograms for ONE
-    market (DE or FR). Same look as the Jacobi by-degree thesis figure: 2x2
-    grid when there are 3-4 degrees, single row for 1-2.
-
-    sim_by_degree: dict {N -> (sim_eur_1, sim_eur_2) | (None, None)}. Cells
-    with no fitted params for that (m, N) get skipped silently.
+    market (DE or FR). 
     """
     items = [(N, sims) for N, sims in sim_by_degree.items()
              if sims is not None and sims[market_idx] is not None]
@@ -858,11 +847,7 @@ def main():
         print(f"  p_gamma_2 = {params.p_gamma_2:.4f}  p_K_2 = {params.p_K_2:+.4f}")
     print(f"  p_e_1     = {params.p_e_1:.4f}      p_e_2 = {params.p_e_2:.4f}")
 
-    # Girsanov coupling check. phi_Z = kappa_Z[0]*lam_Z[0]/sigma_Z[0] is the
-    # implied DE market price of risk; under P it injects an additional
-    # R_t * sigma_Y[0] * phi_Z term into Y_0's drift (see
-    # _drift_matrix_and_const). Magnitude is in normalised units; multiply
-    # by price_scale_2 to read it on the FR raw-EUR/MWh scale.
+
     _sz0 = float(params.sigma_Z[0])
     if abs(_sz0) > 1e-12:
         phi_Z_slow    = (float(params.kappa_Z[0])
@@ -1112,12 +1097,7 @@ def main():
                   f"sim_ext_std={ext_std:8.3f}")
 
     # ---- (E) Cross-market correlation check ----
-    # Compare observed vs simulated DE/FR correlation, both on levels and on
-    # Δprice increments. Per-path correlation is computed for each simulated
-    # trajectory and aggregated as mean ± std across paths so the spread is
-    # visible. The model's parameter-implied instantaneous correlation is
-    # E^P[R_t] = theta_R + lam_R (Jacobi-on-(-1, 1) P-stationary mean), which
-    # the simulator should reproduce as the slow average of Corr(dZ, dY).
+
     print("\n--- Cross-market correlation check (DE vs FR) ---")
     print(f"  Model parameter-implied E^P[R_t] "
           f"= theta_R + lam_R = "

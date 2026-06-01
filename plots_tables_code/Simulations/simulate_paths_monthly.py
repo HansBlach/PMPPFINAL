@@ -28,9 +28,7 @@ import Kalman_filter_LD as ld
 import BIC_monthly_OU   as drv
 
 
-# Compute kernels and the single-market engine live in shared modules. These
-# names are re-imported here so LLR_monthly_OU and the Jacobi script keep
-# importing them from simulate_paths_monthly.
+
 from sim_common import (
     trading_days_to_dt,
     detect_cycle_len,
@@ -120,9 +118,7 @@ def plot_prices_and_seasonality(price_refs, seasonality_eval_ref, fits,
     print(f"  saved {save_path}")
 
 
-# Honour BIC_monthly_OU.USE_WEEKLY_SAMPLING — sim dt must match calibration
-# dt or the mean-reversion speed will be wrong. drv.DT_EKF is the matching
-# constant: 7/365 in weekly mode, 1/252 in daily mode.
+
 DT_SIM = drv.DT_EKF
 
 
@@ -325,9 +321,7 @@ def _simulate_in_history_for_degree(m, N_poly, indep, lam, *,
                       fit_d=drv.FIT_D,
                       independent_poly=indep)
     x_start = np.asarray(ld._mu_P(p)).reshape(-1)
-    # Full stationary covariance — includes the rho-driven cross terms the
-    # old diagonal form dropped. PSD by construction; simulate_state_paths
-    # already ridges with 1e-12*I before its Cholesky.
+    # Full stationary covariance 
     P_start = ld.stationary_cov(p)
     rng = np.random.default_rng(seed)
     sim_eur, _ = simulate_in_history(
@@ -545,9 +539,7 @@ def _plot_increments_hist_all_by_degree_thesis(obs_prices,
         return
     n_panels = len(items)
 
-    # Shared x-scale across panels. Always cover the full observed range so
-    # the largest data-side increments are visible; clip the simulated tails
-    # at their 0.5/99.5 percentile.
+
     sim_pools = []
     for _, sim_prices in items:
         sim_inc = np.diff(np.asarray(sim_prices), axis=1)
@@ -1058,10 +1050,7 @@ def main():
     print(f"  x_final = {x_final}")
     print(f"  diag(P_final) = {np.diag(P_final)}")
 
-    # (0) One-step-ahead in-sample reconstruction from x_prior. This is what
-    # the EKF innovation RMSE integrates: predict y_t from the state
-    # estimate that uses observations only through t-1 (x_prior[t]),
-    # then re-add seasonality and apply price_scale.
+    # (0) One-step-ahead in-sample reconstruction from x_prior.
     print("\nComputing one-step-ahead in-sample reconstruction from x_prior ...")
     n_days_main, n_c_main = maturity.shape
     _, S_hist_main, _ = ld.build_seasonality_matrix(
@@ -1079,13 +1068,8 @@ def main():
         print(f"    {cname:5s}  RMSE={in_sample_rmse[c]:7.3f}   "
               f"bias={in_sample_bias[c]:+7.3f}")
 
-    # (A) In-history — start from the LONG-RUN P-MEAN with the OU
-    # stationary covariance. The data-anchored X[0] start biases the early sim
-    # toward the data; the unconditional mean is cleaner for the thesis figure.
     x_start_inhist = np.asarray(ld._mu_P(params)).reshape(-1)
-    # Full stationary covariance (rho * c_i*c_j / (theta_i+theta_j)), not just
-    # the diagonal — keeps the initial draw consistent with the long-run joint
-    # distribution when factors are correlated.
+
     P_start_inhist = ld.stationary_cov(params)
     print(f"\nSimulating in-history paths from long-run P-mean = "
           f"{x_start_inhist}")
@@ -1191,11 +1175,7 @@ def main():
             save_path=thesis_1mah_path,
         )
 
-    # Thesis 1WAH overlays (analogous to the 1MAH block above):
-    #   A) m-factor sweep at fixed N=3 (one curve per m in {1, 2, 3})
-    #   B) benchmark m1n1 vs m1n3, ONLY when this run is simulating m1n3.
-    # Both use the one-step-ahead `_filter_and_in_sample_pred` predictions
-    # (h(x_prior)). Cells with no saved params file are silently skipped.
+
     if "1WAH" in CONTRACT_LABELS:
         one_wah_idx = CONTRACT_LABELS.index("1WAH")
 

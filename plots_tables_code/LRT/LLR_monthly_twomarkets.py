@@ -56,28 +56,13 @@ SLICE_MIN_HALF  = 0.05
 # and/or "hi" keys. Missing keys keep the default grid edge.
 SLICE_RANGE_OVERRIDES = {}
 
-# Per-parameter grid-resolution overrides, matched as a *prefix* of the
-# rendered label. The Sun polynomial-shape params (β, γ) span a wide
-# window, so the default step is too coarse to resolve the curvature of
-# the local max — sample them more finely. Each extra point is one more
-# EKF evaluation, so this only inflates cost on the matched panels.
 SLICE_PTS_OVERRIDES = {
     r"$\beta":  121,
     r"$\gamma": 121,
 }
 
-# Per-panel y-axis window (in logL units below that panel's max). Slices
-# of the polynomial-shape params often dip steeply far from the MLE;
-# unbounded, those tails compress the autoscale and flatten the well
-# around the local max. Each panel's y-axis is clamped to [max - WINDOW,
-# max], capped at the panel's true data span so flat slices still show in
-# full. Set to None to restore raw autoscale.
 SLICE_LOGL_WINDOW = 500.0
 
-# When True (and a y-window is active), also trim the x-axis to the span
-# where the curve sits inside that window, so the line enters at the
-# bottom-left corner, peaks, and exits at the bottom-right corner instead
-# of leaving dead space where the tail is off-screen.
 SLICE_XFIT_TO_WINDOW = True
 
 

@@ -28,7 +28,7 @@ _LAMBDA_TANH = 1.0
 
 
 # ---------------------------------------------------------------
-# alpha / beta / c parameter maps (Ware 2025 Appendix B)
+# alpha / beta / c parameter maps 
 # ---------------------------------------------------------------
 
 def beta_max_of_alpha(alpha):

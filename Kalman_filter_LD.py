@@ -342,7 +342,7 @@ def num_params_ld(m, N_poly, fit_d=False, independent_poly=False):
     else:
         k += 1                # p_beta
         if N_poly >= 5:
-            k += 2            # p_gamma + p_K (Sun 2024 eq. 3.3 cubic-shift)
+            k += 2            # p_gamma + p_K 
     if fit_d:
         k += m                # d
     return k
