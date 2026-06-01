@@ -130,7 +130,7 @@ def _precompute_Mp(G, p_T, T, delta, expm_cache=None):
 
 
 # ---------------------------------------------------------------
-# Stage-A seasonality (Sun 2024 eq. 6.16) integrated over delivery windows
+# Stage-A seasonality 
 # ---------------------------------------------------------------
 
 def build_seasonality_matrix(t_years, maturity, delivery_dur, y_obs,

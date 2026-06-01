@@ -560,8 +560,7 @@ def _initial_state(params: TwoMarketParams) -> Tuple[np.ndarray, np.ndarray]:
 def EKF_step_two_market(params, x, P, helper, Mp_1_t, Mp_2_t,
                         y_t, R_diag_t, N_pricing,
                         R_clip: float = 1.0 - 1e-4):
-    # Single EKF step combining markets 1 and 2 into one stacked observation
-    # vector of length n_c1 + n_c2. R is clipped to (-R_clip, R_clip) post-update.
+
     x_prior, Q, A_jac = _predict(np.asarray(x).flatten(), helper)
 
     P_prior = A_jac @ P @ A_jac.T + Q
@@ -599,10 +598,7 @@ def EKF_run_two_market(params, x0, P0,
                        T1, delta1, T2, delta2,
                        dt, N_pricing,
                        tau_ref: float = TAU_REF_DEFAULT):
-    # Run the two-market EKF over a common trading-day axis. y_obs_k has shape
-    # (n_steps, n_c_k); T_k, delta_k have shape (n_steps, n_c_k).
-    #
-    # Returns (log_lik, n_obs_total).
+
     n_steps = len(y_obs_1)
     if len(y_obs_2) != n_steps:
         raise ValueError("y_obs_1 and y_obs_2 must share the trading-day axis")

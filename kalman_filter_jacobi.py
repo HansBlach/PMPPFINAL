@@ -110,15 +110,7 @@ class jacobiParams:
             return np.ones(m)
         c_raw = map_c(np.asarray(self.c_tilde).reshape(-1))
         if self.per_factor_c:
-            if c_raw.size != m:
-                raise ValueError(
-                    f"per_factor_c=True expects c_tilde of size {m}, "
-                    f"got {c_raw.size}.")
             return c_raw
-        if c_raw.size != 1:
-            raise ValueError(
-                f"per_factor_c=False expects c_tilde of size 1, "
-                f"got {c_raw.size}.")
         return np.full(m, float(c_raw[0]))
 
 
@@ -467,8 +459,7 @@ def make_bounds(m, N_poly, per_factor_c=True, spot_envelope=None):
 # EKF step / run / MLE
 # ---------------------------------------------------------------
 
-# Cap variance at 0.25 = max of x(1-x). Earlier I used the stationary
-# variance which had an implicit pull toward theta_P = 0.5.
+
 P_POST_DIAG_CAP = 0.25
 
 
